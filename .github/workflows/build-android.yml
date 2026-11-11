@@ -24,7 +24,6 @@ on:
 jobs:
   build-apk:
     name: Build Android APK
-    # 临时将运行环境锁定在 ubuntu-22.04，以避免 ubuntu-latest 镜像升级导致的工具链不兼容问题
     runs-on: ubuntu-22.04
 
     steps:
@@ -39,7 +38,13 @@ jobs:
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
 
-    # 升级到最新或兼容的 setup-android 版本
+    # 【新增步骤】配置 Java 17，因为新版 Android SDK 命令行工具需要 JDK 17+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
