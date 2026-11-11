@@ -5,7 +5,6 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  # 允许手动触发构建，并支持选择构建模式（Release/Debug）和启用特定 Feature
   workflow_dispatch:
     inputs:
       profile:
@@ -25,44 +24,38 @@ on:
 jobs:
   build-apk:
     name: Build Android APK
-    runs-on: ubuntu-latest
+    # 临时将运行环境锁定在 ubuntu-22.04，以避免 ubuntu-latest 镜像升级导致的工具链不兼容问题
+    runs-on: ubuntu-22.04
 
     steps:
-    # 1. 检出代码
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. 设置 Rust 环境并添加 Android 目标
     - name: Set up Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: aarch64-linux-android
 
-    # 3. 安装 cargo-ndk
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
 
-    # 4. 配置 Android SDK / NDK (使用现成的高效 Action)
+    # 升级到最新或兼容的 setup-android 版本
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
-        # 对应你命令行中的 sdkmanager 安装项
         packages: |
           platforms;android-35
           build-tools;35.0.0
           ndk;27.2.12479018
           platform-tools
 
-    # 5. 设置环境变量 (ANDROID_HOME 及 Android 环境变量)
     - name: Set up Environment Variables
       run: |
         echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> $GITHUB_ENV
 
-    # 6. 执行构建脚本 (支持手动触发时的参数，或者默认参数)
     - name: Build APK
       run: |
-        # 如果是手动触发，使用输入的参数；如果是 push 触发，使用默认值
         PROFILE="${{ github.event.inputs.profile || 'debug' }}"
         CARGO_FLAGS="${{ github.event.inputs.cargo_flags }}"
         
@@ -71,7 +64,6 @@ jobs:
         PROFILE="$PROFILE" CARGO_FLAGS="$CARGO_FLAGS" ./packaging/android/build_apk.sh
       shell: bash
 
-    # 7. 上传生成的 APK 文件到 Artifacts，方便在网页端直接下载
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
